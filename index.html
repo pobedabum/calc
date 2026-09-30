@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Калькулятор</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Калькулятор">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1419">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<script src="chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232938;
+    --border: #2d3548;
+    --text: #e6e9ef;
+    --muted: #8b94a7;
+    --accent: #4f8ef7;
+    --accent-2: #7c5cff;
+    --green: #4ade80;
+    --orange: #fb923c;
+    --red: #f87171;
+    --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color: transparent;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--panel);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 16px;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .panel h2 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field label .val {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .field input[type="number"], .field input[type="text"], .field select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .field input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+  }
+  .field input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--text);
+  }
+  .field-row { display: flex; gap: 10px; }
+  .field-row > * { flex: 1; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--panel-2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+  }
+  .stat .label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .stat .value {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .stat.accent .value { color: var(--accent); }
+  .stat.green .value { color: var(--green); }
+  .stat.orange .value { color: var(--orange); }
+  .stat.red .value { color: var(--red); }
+  .stat.yellow .value { color: var(--yellow); }
+
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .chart-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .chart-box h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .chart-box canvas { max-height: 320px; }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .schedule-box {
+    max-height: 360px;
+    overflow-y: auto;
+    margin-top: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  table th, table td {
+    text-align: right;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  table th {
+    background: var(--panel-2);
+    color: var(--muted);
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  table th:first-child, table td:first-child { text-align: left; }
+
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .currency-toggle {
+    display: inline-flex;
+    background: var(--panel-2);
+    border-radius: 6px;
+    padding: 2px;
+    margin-left: auto;
+  }
+  .currency-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .currency-toggle button.active {
+    background: var(--accent);
+    color: white;
+  }
+  .schedule-box { overflow-x: auto; }
+  .layout > * { min-width: 0; }
+  @media (max-width: 600px) {
+    body {
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+    }
+    h1 { font-size: 22px; }
+    .subtitle { margin-bottom: 16px; font-size: 13px; }
+    .tab { padding: 10px 6px; font-size: 13px; }
+    .panel, .chart-box { padding: 16px; }
+    /* 16px — иначе Safari зумит страницу при вводе */
+    .field input[type="number"], .field input[type="text"], .field select { font-size: 16px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat { padding: 12px; }
+    .stat .value { font-size: 17px; }
+    .stat .label { font-size: 11px; }
+    table th, table td { padding: 6px; font-size: 12px; }
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header-row">
+    <div style="flex:1;">
+      <h1>Финансовый калькулятор</h1>
+      <div class="subtitle">Ипотека · Вклад · Сложный процент с пополнением</div>
+    </div>
+    <div class="currency-toggle">
+      <button class="active" data-cur="RUB">₽</button>
+      <button data-cur="USD">$</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-pane="mortgage">Ипотека</button>
+    <button class="tab" data-pane="deposit">Вклад</button>
+    <button class="tab" data-pane="compound">Сложный процент</button>
+  </div>
+
+  <!-- ============== ИПОТЕКА ============== -->
+  <div class="pane active" id="pane-mortgage">
+    <div class="layout">
+      <div class="panel">
+        <h2>Параметры</h2>
+
+        <div class="field">
+          <label>Стоимость объекта <span class="val" id="m_price_val"></span></label>
+          <input type="number" id="m_price" value="12000000" step="100000">
+          <input type="range" id="m_price_range" min="500000" max="50000000" step="100000" value="12000000">
+        </div>
+
+        <div class="field">
+          <label>Первоначальный взнос <span class="val" id="m_down_val"></span></label>
+          <input type="number" id="m_down" value="4000000" step="100000">
+          <input type="range" id="m_down_range" min="0" max="50000000" step="100000" value="4000000">
+          <div class="hint" id="m_down_pct"></div>
+        </div>
+
+        <div class="field">
+          <label>Срок (лет) <span class="val" id="m_years_val"></span></label>
+          <input type="number" id="m_years" value="20" min="1" max="35">
+          <input type="range" id="m_years_range" min="1" max="35" step="1" value="20">
+        </div>
+
+        <div class="field">
+          <label>Ставка % годовых <span class="val" id="m_rate_val"></span></label>
+          <input type="number" id="m_rate" value="18" min="0" max="40" step="0.1">
+          <input type="range" id="m_rate_range" min="0" max="40" step="0.1" value="18">
+        </div>
+
+        <div class="field">
+          <label>Тип платежа</label>
+          <select id="m_type">
+            <option value="annuity">Аннуитетный</option>
+            <option value="differentiated">Дифференцированный</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Досрочное погашение / мес <span class="val" id="m_extra_val"></span></label>
+          <input type="number" id="m_extra" value="0" step="5000">
+          <input type="range" id="m_extra_range" min="0" max="200000" step="1000" value="0">
+          <div class="hint">Идёт в уменьшение основного долга</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stats">
+          <div class="stat accent">
+            <div class="label">Ежемесячный платёж</div>
+            <div class="value" id="m_payment">—</div>
+            <div class="sub" id="m_payment_sub"></div>
+          </div>
+          <div class="stat orange">
+            <div class="label">Переплата</div>
+            <div class="value" id="m_overpay">—</div>
+            <div class="sub" id="m_overpay_pct"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Сумма кредита</div>
+            <div class="value" id="m_loan">—</div>
+          </div>
+          <div class="stat green">
+            <div class="label">Срок фактический</div>
+            <div class="value" id="m_actual_term">—</div>
+            <div class="sub" id="m_saved_term"></div>
+          </div>
+        </div>
+
+        <div class="charts">
+          <div class="chart-box">
+            <h3>Остаток долга по годам</h3>
+            <canvas id="m_chart_balance"></canvas>
+          </div>
+          <div class="chart-box">
+            <h3>Структура выплат: тело vs проценты</h3>
+            <canvas id="m_chart_split"></canvas>
+          </div>
+          <div class="chart-box">
+            <h3>График платежей (первые 36 месяцев)</h3>
+            <div class="schedule-box">
+              <table id="m_schedule">
+                <thead>
+                  <tr><th>Месяц</th><th>Платёж</th><th>Тело</th><th>Проценты</th><th>Остаток</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== ВКЛАД ============== -->
+  <div class="pane" id="pane-deposit">
+    <div class="layout">
+      <div class="panel">
+        <h2>Параметры</h2>
+
+        <div class="field">
+          <label>Начальная сумма <span class="val" id="d_init_val"></span></label>
+          <input type="number" id="d_init" value="500000" step="10000">
+          <input type="range" id="d_init_range" min="0" max="10000000" step="10000" value="500000">
+        </div>
+
+        <div class="field">
+          <label>Ежемесячное пополнение <span class="val" id="d_month_val"></span></label>
+          <input type="number" id="d_month" value="60000" step="5000">
+          <input type="range" id="d_month_range" min="0" max="500000" step="5000" value="60000">
+        </div>
+
+        <div class="field">
+          <label>Срок (месяцев) <span class="val" id="d_months_val"></span></label>
+          <input type="number" id="d_months" value="12" min="1" max="240">
+          <input type="range" id="d_months_range" min="1" max="240" value="12">
+        </div>
+
+        <div class="field">
+          <label>Ставка % годовых <span class="val" id="d_rate_val"></span></label>
+          <input type="number" id="d_rate" value="20" step="0.1">
+          <input type="range" id="d_rate_range" min="0" max="40" step="0.1" value="20">
+        </div>
+
+        <div class="field">
+          <label>Капитализация</label>
+          <select id="d_cap">
+            <option value="12">Ежемесячно</option>
+            <option value="4">Ежеквартально</option>
+            <option value="2">Раз в полгода</option>
+            <option value="1">В конце срока</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Налог НДФЛ (13%)</label>
+          <select id="d_tax">
+            <option value="0">Не учитывать</option>
+            <option value="1">Учитывать (выше ставки ЦБ × 1млн)</option>
+          </select>
+          <div class="hint">Упрощённый расчёт: 13% от дохода свыше необлагаемого минимума</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stats">
+          <div class="stat accent">
+            <div class="label">Итоговая сумма</div>
+            <div class="value" id="d_total">—</div>
+          </div>
+          <div class="stat green">
+            <div class="label">Доход</div>
+            <div class="value" id="d_income">—</div>
+            <div class="sub" id="d_income_pct"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Внесено за период</div>
+            <div class="value" id="d_invested">—</div>
+          </div>
+          <div class="stat yellow">
+            <div class="label">Эффективная ставка</div>
+            <div class="value" id="d_effective">—</div>
+            <div class="sub">с учётом капитализации</div>
+          </div>
+        </div>
+
+        <div class="charts">
+          <div class="chart-box">
+            <h3>Рост капитала</h3>
+            <canvas id="d_chart_growth"></canvas>
+          </div>
+          <div class="chart-box">
+            <h3>Состав итога: вклад vs проценты</h3>
+            <canvas id="d_chart_split"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== СЛОЖНЫЙ ПРОЦЕНТ ============== -->
+  <div class="pane" id="pane-compound">
+    <div class="layout">
+      <div class="panel">
+        <h2>Параметры</h2>
+
+        <div class="field">
+          <label>Начальный капитал <span class="val" id="c_init_val"></span></label>
+          <input type="number" id="c_init" value="100000" step="10000">
+          <input type="range" id="c_init_range" min="0" max="10000000" step="10000" value="100000">
+        </div>
+
+        <div class="field">
+          <label>Ежемесячное пополнение <span class="val" id="c_month_val"></span></label>
+          <input type="number" id="c_month" value="60000" step="1000">
+          <input type="range" id="c_month_range" min="0" max="500000" step="1000" value="60000">
+        </div>
+
+        <div class="field">
+          <label>Прибавка к пополнению / год <span class="val" id="c_growth_val"></span></label>
+          <input type="number" id="c_growth" value="5000" step="1000" min="0">
+          <input type="range" id="c_growth_range" min="0" max="200000" step="1000" value="5000">
+          <div class="hint">На сколько увеличите ежемесячное пополнение через каждый год (рост дохода)</div>
+        </div>
+
+        <div class="field">
+          <label>Срок (лет) <span class="val" id="c_years_val"></span></label>
+          <input type="number" id="c_years" value="15" min="1" max="50">
+          <input type="range" id="c_years_range" min="1" max="50" value="15">
+        </div>
+
+        <div class="field">
+          <label>Среднегодовая доходность % <span class="val" id="c_rate_val"></span></label>
+          <input type="number" id="c_rate" value="12" step="0.5">
+          <input type="range" id="c_rate_range" min="0" max="50" step="0.5" value="12">
+        </div>
+
+        <div class="field">
+          <label>Инфляция % / год (опц.) <span class="val" id="c_infl_val"></span></label>
+          <input type="number" id="c_infl" value="7" step="0.5">
+          <input type="range" id="c_infl_range" min="0" max="30" step="0.5" value="7">
+          <div class="hint">Для расчёта реальной покупательной способности</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stats">
+          <div class="stat accent">
+            <div class="label">Итоговый капитал</div>
+            <div class="value" id="c_total">—</div>
+            <div class="sub" id="c_total_real"></div>
+          </div>
+          <div class="stat green">
+            <div class="label">Доход от %%</div>
+            <div class="value" id="c_income">—</div>
+            <div class="sub" id="c_income_pct"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Внесено за всё время</div>
+            <div class="value" id="c_invested">—</div>
+          </div>
+<div class="stat yellow">
+            <div class="label">Пассивный доход / мес</div>
+            <div class="value" id="c_passive">—</div>
+            <div class="sub">при выводе всей доходности</div>
+          </div>
+          <div class="stat green">
+            <div class="label">Безопасный доход / мес</div>
+            <div class="value" id="c_safe">—</div>
+            <div class="sub">по правилу 4% (Бенген)</div>
+          </div>
+          <div class="stat orange">
+            <div class="label">Реальный доход / мес</div>
+            <div class="value" id="c_real_income">—</div>
+            <div class="sub" id="c_real_income_sub">с поправкой на инфляцию</div>
+          </div>
+        </div>
+
+        <div class="charts">
+          <div class="chart-box">
+            <h3>Рост капитала по годам</h3>
+            <canvas id="c_chart_growth"></canvas>
+          </div>
+          <div class="chart-box">
+            <h3>Вклад vs проценты накопительно</h3>
+            <canvas id="c_chart_stack"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Расчёты для ориентира, не финансовая рекомендация. Налоги и комиссии банка могут отличаться.
+  </div>
+</div>
+
+<script>
+let currency = 'RUB';
+const symbols = { RUB: '₽', USD: '$' };
+
+function fmt(n) {
+  if (!isFinite(n) || isNaN(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  n = Math.abs(n);
+  let formatted;
+  if (n >= 1e9) formatted = (n / 1e9).toFixed(2) + ' млрд';
+  else if (n >= 1e6) formatted = (n / 1e6).toFixed(2) + ' млн';
+  else if (n >= 1e3) formatted = (n / 1e3).toFixed(0) + ' тыс';
+  else formatted = n.toFixed(0);
+  return sign + formatted + ' ' + symbols[currency];
+}
+function fmtFull(n) {
+  if (!isFinite(n) || isNaN(n)) return '—';
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' ' + symbols[currency];
+}
+function fmtPct(n) { return (isFinite(n) ? n.toFixed(1) : '—') + '%'; }
+
+// === Tabs ===
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('pane-' + t.dataset.pane).classList.add('active');
+    // resize charts
+    Object.values(charts).forEach(c => c && c.resize());
+  });
+});
+
+// === Currency toggle ===
+document.querySelectorAll('.currency-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.currency-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currency = b.dataset.cur;
+    recalcAll();
+  });
+});
+
+// Sync number<->range
+function syncPair(numId, rangeId, valId) {
+  const num = document.getElementById(numId);
+  const range = document.getElementById(rangeId);
+  const val = valId ? document.getElementById(valId) : null;
+  function update(src) {
+    if (src === 'num') range.value = num.value;
+    else num.value = range.value;
+    if (val) val.textContent = fmt(parseFloat(num.value));
+    recalcAll();
+  }
+  num.addEventListener('input', () => update('num'));
+  range.addEventListener('input', () => update('range'));
+}
+
+// === Charts registry ===
+const charts = {};
+const chartCommon = () => ({
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { labels: { color: '#e6e9ef', font: { size: 12 } } },
+    tooltip: {
+      backgroundColor: '#1a1f2e',
+      borderColor: '#2d3548',
+      borderWidth: 1,
+      titleColor: '#e6e9ef',
+      bodyColor: '#e6e9ef',
+      callbacks: {
+        label: (ctx) => ctx.dataset.label + ': ' + fmtFull(ctx.parsed.y || ctx.parsed)
+      }
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#8b94a7' }, grid: { color: '#2d3548' } },
+    y: { ticks: { color: '#8b94a7', callback: (v) => fmt(v) }, grid: { color: '#2d3548' } }
+  }
+});
+
+// ============== ИПОТЕКА ==============
+function calcMortgage() {
+  const price = +document.getElementById('m_price').value;
+  const down = +document.getElementById('m_down').value;
+  const years = +document.getElementById('m_years').value;
+  const rate = +document.getElementById('m_rate').value;
+  const type = document.getElementById('m_type').value;
+  const extra = +document.getElementById('m_extra').value;
+  const loan = Math.max(0, price - down);
+  const n = years * 12;
+  const r = rate / 100 / 12;
+
+  let payment, schedule = [];
+  let balance = loan;
+  let totalPaid = 0, totalInterest = 0;
+  let monthIdx = 0;
+
+  if (type === 'annuity') {
+    payment = r === 0 ? loan / n : loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    while (balance > 0.01 && monthIdx < n + 1) {
+      monthIdx++;
+      const interest = balance * r;
+      let principal = payment - interest;
+      let pay = payment;
+      if (principal + extra >= balance) {
+        principal = balance;
+        pay = balance + interest;
+        balance = 0;
+      } else {
+        balance -= (principal + extra);
+        pay += extra;
+        principal += extra;
+      }
+      totalPaid += pay;
+      totalInterest += interest;
+      schedule.push({ m: monthIdx, pay, principal, interest, balance });
+      if (balance <= 0) break;
+      if (monthIdx > 600) break;
+    }
+  } else {
+    const principalBase = loan / n;
+    while (balance > 0.01 && monthIdx < n + 1) {
+      monthIdx++;
+      const interest = balance * r;
+      let principal = principalBase;
+      if (principal + extra >= balance) {
+        principal = balance;
+        balance = 0;
+      } else {
+        balance -= (principal + extra);
+        principal += extra;
+      }
+      const pay = principal + interest;
+      totalPaid += pay;
+      totalInterest += interest;
+      schedule.push({ m: monthIdx, pay, principal, interest, balance });
+      if (balance <= 0) break;
+      if (monthIdx > 600) break;
+    }
+    payment = schedule[0] ? schedule[0].pay : 0;
+  }
+
+  // outputs
+  document.getElementById('m_payment').textContent = fmtFull(payment);
+  if (type === 'differentiated' && schedule.length) {
+    document.getElementById('m_payment_sub').textContent = 'Первый платёж · последний: ' + fmt(schedule[schedule.length - 1].pay);
+  } else {
+    document.getElementById('m_payment_sub').textContent = type === 'annuity' ? 'Одинаков весь срок' : '';
+  }
+  document.getElementById('m_loan').textContent = fmtFull(loan);
+  document.getElementById('m_overpay').textContent = fmtFull(totalInterest);
+  document.getElementById('m_overpay_pct').textContent = loan > 0 ? fmtPct(totalInterest / loan * 100) + ' от кредита' : '';
+  const months = schedule.length;
+  const yrs = Math.floor(months / 12), mn = months % 12;
+  document.getElementById('m_actual_term').textContent = yrs + ' г ' + mn + ' мес';
+  const saved = n - months;
+  document.getElementById('m_saved_term').textContent = saved > 0 ? 'Сэкономлено ' + Math.floor(saved / 12) + ' г ' + (saved % 12) + ' мес' : '';
+  document.getElementById('m_down_pct').textContent = price > 0 ? 'Это ' + fmtPct(down / price * 100) + ' от стоимости' : '';
+
+  // chart: balance by year
+  const yearLabels = [];
+  const yearBalance = [];
+  const yearInterest = [];
+  const yearPrincipal = [];
+  let lastBalance = loan;
+  yearLabels.push('0');
+  yearBalance.push(loan);
+  yearInterest.push(0);
+  yearPrincipal.push(0);
+  let yiSum = 0, ypSum = 0;
+  for (let i = 0; i < schedule.length; i++) {
+    yiSum += schedule[i].interest;
+    ypSum += schedule[i].principal;
+    if ((i + 1) % 12 === 0 || i === schedule.length - 1) {
+      const yr = Math.ceil((i + 1) / 12);
+      yearLabels.push(yr + '');
+      yearBalance.push(schedule[i].balance);
+      yearInterest.push(yiSum);
+      yearPrincipal.push(ypSum);
+      yiSum = 0; ypSum = 0;
+    }
+  }
+
+  renderChart('m_chart_balance', 'line', {
+    labels: yearLabels,
+    datasets: [{
+      label: 'Остаток долга',
+      data: yearBalance,
+      borderColor: '#f87171',
+      backgroundColor: 'rgba(248,113,113,0.15)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3
+    }]
+  });
+
+  renderChart('m_chart_split', 'bar', {
+    labels: yearLabels.slice(1),
+    datasets: [
+      { label: 'Тело', data: yearPrincipal.slice(1), backgroundColor: '#4ade80', stack: 's1' },
+      { label: 'Проценты', data: yearInterest.slice(1), backgroundColor: '#fb923c', stack: 's1' }
+    ]
+  }, { stacked: true });
+
+  // table
+  const tbody = document.querySelector('#m_schedule tbody');
+  tbody.innerHTML = '';
+  for (let i = 0; i < Math.min(36, schedule.length); i++) {
+    const s = schedule[i];
+    tbody.insertAdjacentHTML('beforeend',
+      `<tr><td>${s.m}</td><td>${fmtFull(s.pay)}</td><td>${fmtFull(s.principal)}</td><td>${fmtFull(s.interest)}</td><td>${fmtFull(s.balance)}</td></tr>`);
+  }
+}
+
+// ============== ВКЛАД ==============
+function calcDeposit() {
+  const init = +document.getElementById('d_init').value;
+  const month = +document.getElementById('d_month').value;
+  const months = +document.getElementById('d_months').value;
+  const rate = +document.getElementById('d_rate').value;
+  const cap = +document.getElementById('d_cap').value; // 12,4,2,1
+  const tax = +document.getElementById('d_tax').value;
+
+  // monthly simulation, interest accrued each month, capitalization adds it to balance
+  let balance = init;
+  let accruedSinceCap = 0;
+  const monthRate = rate / 100 / 12;
+  const capEveryMonths = 12 / cap;
+  const data = [{ m: 0, total: balance, invested: init, interest: 0 }];
+  let totalInterest = 0;
+  let totalInvested = init;
+
+  for (let m = 1; m <= months; m++) {
+    // monthly accrual
+    const accrual = balance * monthRate;
+    accruedSinceCap += accrual;
+    totalInterest += accrual;
+    // add monthly contribution
+    balance += month;
+    totalInvested += month;
+    // capitalize if cap month
+    if (m % capEveryMonths === 0 || m === months) {
+      balance += accruedSinceCap;
+      accruedSinceCap = 0;
+    }
+    data.push({ m, total: balance, invested: totalInvested, interest: totalInterest });
+  }
+
+  let netInterest = totalInterest;
+  if (tax === 1) {
+    // 13% от дохода свыше необлагаемого минимума (упрощённо: ставка ЦБ 16% × 1млн = 160 тыс)
+    const taxFree = 160000;
+    if (totalInterest > taxFree) netInterest = totalInterest - (totalInterest - taxFree) * 0.13;
+  }
+
+  document.getElementById('d_total').textContent = fmtFull(balance - totalInterest + netInterest);
+  document.getElementById('d_income').textContent = fmtFull(netInterest);
+  document.getElementById('d_income_pct').textContent = totalInvested > 0 ? fmtPct(netInterest / totalInvested * 100) + ' от вложений' : '';
+  document.getElementById('d_invested').textContent = fmtFull(totalInvested);
+  const eff = Math.pow(1 + monthRate, 12) - 1;
+  document.getElementById('d_effective').textContent = fmtPct(eff * 100);
+
+  renderChart('d_chart_growth', 'line', {
+    labels: data.map(d => d.m),
+    datasets: [
+      {
+        label: 'Итого',
+        data: data.map(d => d.total),
+        borderColor: '#4f8ef7',
+        backgroundColor: 'rgba(79,142,247,0.15)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0
+      },
+      {
+        label: 'Внесено',
+        data: data.map(d => d.invested),
+        borderColor: '#8b94a7',
+        borderDash: [5, 5],
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        pointRadius: 0
+      }
+    ]
+  });
+
+  renderChart('d_chart_split', 'doughnut', {
+    labels: ['Внесено', 'Доход от %%'],
+    datasets: [{
+      data: [totalInvested, netInterest],
+      backgroundColor: ['#4f8ef7', '#4ade80'],
+      borderColor: '#1a1f2e',
+      borderWidth: 2
+    }]
+  }, { doughnut: true });
+}
+
+// ============== СЛОЖНЫЙ ПРОЦЕНТ ==============
+function calcCompound() {
+  const init = +document.getElementById('c_init').value;
+  let month = +document.getElementById('c_month').value;
+  const growth = +document.getElementById('c_growth').value;
+  const years = +document.getElementById('c_years').value;
+  const rate = +document.getElementById('c_rate').value;
+  const infl = +document.getElementById('c_infl').value;
+
+  const monthRate = rate / 100 / 12;
+  let balance = init;
+  let invested = init;
+  const labels = ['0'];
+  const totals = [balance];
+  const investedArr = [invested];
+  const interestArr = [0];
+
+  let currentMonthly = month;
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      balance = balance * (1 + monthRate) + currentMonthly;
+      invested += currentMonthly;
+    }
+    currentMonthly = currentMonthly + growth;
+    labels.push(y + '');
+    totals.push(balance);
+    investedArr.push(invested);
+    interestArr.push(balance - invested);
+  }
+
+  const totalInterest = balance - invested;
+  const realValue = balance / Math.pow(1 + infl / 100, years);
+
+  document.getElementById('c_total').textContent = fmtFull(balance);
+  document.getElementById('c_total_real').textContent = infl > 0 ? 'Реально: ' + fmt(realValue) + ' (с инфл. ' + infl + '%)' : '';
+  document.getElementById('c_income').textContent = fmtFull(totalInterest);
+  document.getElementById('c_income_pct').textContent = invested > 0 ? fmtPct(totalInterest / invested * 100) + ' от вложений' : '';
+  document.getElementById('c_invested').textContent = fmtFull(invested);
+  document.getElementById('c_passive').textContent = fmtFull(balance * monthRate);
+  // правило 4% — безопасная ставка изъятия по Бенгену
+  document.getElementById('c_safe').textContent = fmtFull(balance * 0.04 / 12);
+  // реальный доход с учётом инфляции в сегодняшних деньгах
+  const realMonthRate = (rate - infl) / 100 / 12;
+  document.getElementById('c_real_income').textContent = fmtFull(realValue * realMonthRate);
+  document.getElementById('c_real_income_sub').textContent = infl > 0 ? `(${rate}% − ${infl}%) ÷ 12 от реального капитала` : 'установи инфляцию выше 0';
+
+  renderChart('c_chart_growth', 'line', {
+    labels,
+    datasets: [
+      {
+        label: 'Капитал',
+        data: totals,
+        borderColor: '#7c5cff',
+        backgroundColor: 'rgba(124,92,255,0.18)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3
+      },
+      {
+        label: 'Внесено',
+        data: investedArr,
+        borderColor: '#8b94a7',
+        borderDash: [5, 5],
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        pointRadius: 0
+      }
+    ]
+  });
+
+  renderChart('c_chart_stack', 'bar', {
+    labels: labels.slice(1),
+    datasets: [
+      { label: 'Внесено', data: investedArr.slice(1), backgroundColor: '#4f8ef7', stack: 's1' },
+      { label: 'Проценты', data: interestArr.slice(1), backgroundColor: '#4ade80', stack: 's1' }
+    ]
+  }, { stacked: true });
+}
+
+// === Chart helper ===
+function renderChart(id, type, data, opts = {}) {
+  if (charts[id]) {
+    charts[id].destroy();
+  }
+  const ctx = document.getElementById(id).getContext('2d');
+  let options = chartCommon();
+  if (opts.doughnut) {
+    options = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#e6e9ef' } },
+        tooltip: { callbacks: { label: (ctx) => ctx.label + ': ' + fmtFull(ctx.parsed) } }
+      }
+    };
+  }
+  if (opts.stacked) {
+    options.scales.x.stacked = true;
+    options.scales.y.stacked = true;
+  }
+  charts[id] = new Chart(ctx, { type, data, options });
+}
+
+// === Запоминаем введённое между запусками ===
+const STORE_KEY = 'fincalc_v1';
+function saveState() {
+  const state = { currency, tab: document.querySelector('.tab.active').dataset.pane, fields: {} };
+  document.querySelectorAll('input[type="number"], select').forEach(el => { state.fields[el.id] = el.value; });
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function loadState() {
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) {}
+  if (!state) return;
+  Object.entries(state.fields || {}).forEach(([id, v]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = v;
+    const range = document.getElementById(id + '_range');
+    if (range) range.value = v;
+  });
+  if (state.currency) {
+    currency = state.currency;
+    document.querySelectorAll('.currency-toggle button').forEach(b => b.classList.toggle('active', b.dataset.cur === currency));
+  }
+  const tab = state.tab && document.querySelector('.tab[data-pane="' + state.tab + '"]');
+  if (tab) {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === tab));
+    document.querySelectorAll('.pane').forEach(x => x.classList.toggle('active', x.id === 'pane-' + state.tab));
+  }
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', saveState));
+
+function recalcAll() {
+  // update displayed labels
+  document.getElementById('m_price_val').textContent = fmt(+document.getElementById('m_price').value);
+  document.getElementById('m_down_val').textContent = fmt(+document.getElementById('m_down').value);
+  document.getElementById('m_years_val').textContent = document.getElementById('m_years').value + ' лет';
+  document.getElementById('m_rate_val').textContent = document.getElementById('m_rate').value + '%';
+  document.getElementById('m_extra_val').textContent = fmt(+document.getElementById('m_extra').value);
+
+  document.getElementById('d_init_val').textContent = fmt(+document.getElementById('d_init').value);
+  document.getElementById('d_month_val').textContent = fmt(+document.getElementById('d_month').value);
+  document.getElementById('d_months_val').textContent = document.getElementById('d_months').value + ' мес';
+  document.getElementById('d_rate_val').textContent = document.getElementById('d_rate').value + '%';
+
+  document.getElementById('c_init_val').textContent = fmt(+document.getElementById('c_init').value);
+  document.getElementById('c_month_val').textContent = fmt(+document.getElementById('c_month').value);
+  document.getElementById('c_growth_val').textContent = fmt(+document.getElementById('c_growth').value) + ' / мес';
+  document.getElementById('c_years_val').textContent = document.getElementById('c_years').value + ' лет';
+  document.getElementById('c_rate_val').textContent = document.getElementById('c_rate').value + '%';
+  document.getElementById('c_infl_val').textContent = document.getElementById('c_infl').value + '%';
+
+  calcMortgage();
+  calcDeposit();
+  calcCompound();
+  saveState();
+}
+
+// === Bindings ===
+const pairs = [
+  ['m_price', 'm_price_range'], ['m_down', 'm_down_range'],
+  ['m_years', 'm_years_range'], ['m_rate', 'm_rate_range'],
+  ['m_extra', 'm_extra_range'],
+  ['d_init', 'd_init_range'], ['d_month', 'd_month_range'],
+  ['d_months', 'd_months_range'], ['d_rate', 'd_rate_range'],
+  ['c_init', 'c_init_range'], ['c_month', 'c_month_range'],
+  ['c_growth', 'c_growth_range'], ['c_years', 'c_years_range'],
+  ['c_rate', 'c_rate_range'], ['c_infl', 'c_infl_range']
+];
+pairs.forEach(([n, r]) => syncPair(n, r, null));
+
+document.getElementById('m_type').addEventListener('change', recalcAll);
+document.getElementById('d_cap').addEventListener('change', recalcAll);
+document.getElementById('d_tax').addEventListener('change', recalcAll);
+
+loadState();
+recalcAll();
+
+// Работа без интернета
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
